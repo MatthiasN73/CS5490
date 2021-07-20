@@ -100,7 +100,7 @@ public:
 		CS5490(float mclk, int reset);
 	#endif
 
-	uint32_t data[3]; //data buffer for read and write
+	uint8_t data[3]; //data buffer for read and write
 	int selectedPage;
 	float MCLK;
 	int resetPin;
