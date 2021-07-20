@@ -392,8 +392,8 @@ void CS5490::setDOpinFunction(DO_Function_t DO_fnct, bool openDrain)
 
 long CS5490::getBaudRate(){
 	this->read(0,7);
-	uint32_t buffer = this->concatData();
-	buffer -= 0x020000;
+	uint32_t buffer = (this->concatData() & 0x0000FFFF);
+	//buffer -= 0x020000;
 	return ( (buffer/0.5242880)*MCLK );
 }
 
