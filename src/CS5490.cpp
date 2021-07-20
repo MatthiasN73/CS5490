@@ -252,10 +252,10 @@ uint32_t CS5490::toBinary(int LSBpow, int MSBoption, double input){
 
 /******* Concatenation of the incomming data from CS5490 *******/
 uint32_t CS5490::concatData(){
-	uint32_t output;
-	output = output + data[2] << 8;
-	output = output + data[1] << 8;
-	output = output + data[0];
+	uint32_t output = 0;
+	output |= (data[2] << 16);
+	output |= (data[1] << 8);
+	output |= data[0];
 	return output;
 }
 
