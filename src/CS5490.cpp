@@ -51,7 +51,7 @@
 	}
 #endif
 
-void CS5490::begin(int baudRate){
+void CS5490::begin(int baudRate) {
 	cSerial->begin(baudRate);
 	this->_readOperationResult = true;
 	delay(10); //Avoid Bugs on Arduino UNO
@@ -67,22 +67,34 @@ void CS5490::begin(int baudRate){
 
 void CS5490::write(int page, int address, uint32_t value){
 
-	uint8_t buffer;
+	uint8_t len = 1;
+	uint8_t buffer[5];
+	
 	//Select page and address
 	if(this->selectedPage != page){
-		buffer = (CS_pageByte | (uint8_t)page);
-		cSerial->write(buffer);
+		buffer[0] = (CS_pageByte | (uint8_t)page);
+		if(_useSerialChecksum) {
+			buffer[1] = calcChecksum(buffer, 1);
+			len += 1;
+		}
+		cSerial->write(buffer, len);
 		this->selectedPage = page;
 	}
-	buffer = (CS_writeByte | (uint8_t)address);
-	cSerial->write(buffer);
+
+	len = 4;	
+	buffer[0] = (CS_writeByte | (uint8_t)address);
 
 	//Send information
 	for(int i=0; i<3 ; i++){
-		data[i] = value & 0x000000FF;
-		cSerial->write(this->data[i]);
+		buffer[i+1] = value & 0x000000FF;
 		value >>= 8;
 	}
+
+	if(_useSerialChecksum) {
+		buffer[4] = calcChecksum(buffer, 4);
+		len += 1;
+	}
+	cSerial->write(buffer, len);
 }
 
 /******* Read a register by the serial communication *******/
@@ -93,24 +105,48 @@ void CS5490::read(int page, int address){
 	unsigned long startMillis;
 
 	this->clearSerialBuffer();
+	data[0] = 0;
+	data[1] = 0;
+	data[2] = 0;
 
-	uint8_t buffer;
+	uint8_t len = 1;
+	uint8_t buffer[4];
+
 	//Select page and address
 	if(this->selectedPage != page){
-		buffer = (CS_pageByte | (uint8_t)page);
-		cSerial->write(buffer);
+		buffer[0] = (CS_pageByte | (uint8_t)page);
+		if(_useSerialChecksum) {
+			buffer[1] = calcChecksum(buffer, 1);
+			len += 1;
+		}
+		cSerial->write(buffer, len);
 		this->selectedPage = page;
 	}
-	buffer = (CS_readByte | (uint8_t)address);
-	cSerial->write(buffer);
+
+	uint8_t toRead = 3;
+	if(_useSerialChecksum) {
+		toRead++;
+	}
 
 	startMillis = millis();
 	//Wait for 3 bytes to arrive
-	while( (cSerial->available() < 3) && ( (millis()-startMillis) < 500));
-	if(cSerial->available() >= 3)
+	while((cSerial->available() < toRead) && ((millis()-startMillis) < 500));
+	if(cSerial->available() >= toRead)
 	{
-		for(int i=0; i<3; i++){
-			data[i] = cSerial->read();
+		for(int i=0; i<toRead; i++){
+			buffer[i] = cSerial->read();
+		}
+		if(_useSerialChecksum) {
+			uint8_t csum = calcChecksum(buffer, 3);
+			if(csum == buffer[3]) {
+				data[0] = buffer[0];
+				data[1] = buffer[1];
+				data[2] = buffer[2];
+			}
+			else 
+			{
+				this->_readOperationResult = false;
+			}
 		}
 	}
 	else
@@ -119,6 +155,15 @@ void CS5490::read(int page, int address){
 	}
 
 	this->clearSerialBuffer();
+}
+
+// Calculates the checksum for buffer
+uint8_t CS5490::calcChecksum(const uint8_t* buffer, uint8_t len){
+	uint8_t csum = 0xFF;
+	for(uint8_t idx = 0; idx < len; idx++){
+		csum = ((csum - buffer[idx]) & 0xFF);
+	}
+	return(csum);
 }
 
 // Used to check if read operations succeeded or not. Return:
@@ -141,8 +186,15 @@ uint32_t CS5490::getRegChk(void)
 /******* Give an instruction by the serial communication *******/
 
 void CS5490::instruct(int value){
-	uint8_t buffer = (CS_instructionByte | (uint8_t)value);
-	cSerial->write(buffer);
+	uint8_t buffer[2];
+	uint8_t len = 1;
+	buffer[0] = (CS_instructionByte | (uint8_t)value);
+	if(_useSerialChecksum) {
+		buffer[1] = calcChecksum(buffer, 1);
+		len++;
+	}
+
+	cSerial->write(buffer, len);
 }
 
 /******* Clears cSerial Buffer *******/
@@ -349,12 +401,16 @@ void CS5490::sendCalibrationCommand(uint8_t type, uint8_t channel){
 /**************************************************************/
 
 /* SET */
-void CS5490::setBaudRate(long value){
+void CS5490::setBaudRate(long value, bool useSerialChecksum = false) {
+
+	_useSerialChecksum = useSerialChecksum;
 
 	//Calculate the correct binary value
 	uint32_t hexBR = ceil(value*0.5242880/MCLK);
 	if (hexBR > 65535) hexBR = 65535;
-	hexBR += 0x020000;
+	if(_useSerialChecksum == false) {
+		hexBR |= 0x020000;
+	}
 
 	this->write(0x80,0x07,hexBR);          // 0x80 instead of 0x00 in order to force a page selection command on page 0
 	delay(100); //To avoid bugs from ESP32

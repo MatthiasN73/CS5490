@@ -87,6 +87,7 @@ class CS5490{
 
 private:
 	bool _readOperationResult;
+	bool _useSerialChecksum;
 
 public:
 
@@ -100,7 +101,7 @@ public:
 		CS5490(float mclk, int reset);
 	#endif
 
-	uint8_t data[3]; //data buffer for read and write
+	uint8_t data[3]; //data buffer for read and write 
 	int selectedPage;
 	float MCLK;
 	int resetPin;
@@ -115,6 +116,7 @@ public:
 	uint32_t concatData();
 	bool areLastReadingOperationsSucceeded(void);
 	uint32_t getRegChk(void);
+	uint8_t calcChecksum(const uint8_t* buffer, uint8_t len);
 
 
 	/*** Instructions ***/
@@ -187,7 +189,7 @@ public:
 
 	/*** Configuration ***/
 	long getBaudRate();
-	void setBaudRate(long value);
+	void setBaudRate(long value, bool useSerialChecksum);
 	void setDOpinFunction(DO_Function_t DO_fnct, bool openDrain);
 	/* Not implemented functions
 	void setDO(int mode);
