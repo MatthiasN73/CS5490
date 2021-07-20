@@ -50,10 +50,10 @@
 #define baudRate_default 600
 
 // all comands templates
-#define readByte        0b00000000
-#define writeByte       0b01000000
-#define pageByte        0b10000000
-#define instructionByte 0b11000000
+#define CS_readByte        0b00000000
+#define CS_writeByte       0b01000000
+#define CS_pageByte        0b10000000
+#define CS_instructionByte 0b11000000
 /*
 Used to combine with the 6 last bits
 Ex: Select page number 3 -> 000011

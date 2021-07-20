@@ -70,11 +70,11 @@ void CS5490::write(int page, int address, uint32_t value){
 	uint8_t buffer;
 	//Select page and address
 	if(this->selectedPage != page){
-		buffer = (pageByte | (uint8_t)page);
+		buffer = (CS_pageByte | (uint8_t)page);
 		cSerial->write(buffer);
 		this->selectedPage = page;
 	}
-	buffer = (writeByte | (uint8_t)address);
+	buffer = (CS_writeByte | (uint8_t)address);
 	cSerial->write(buffer);
 
 	//Send information
@@ -97,11 +97,11 @@ void CS5490::read(int page, int address){
 	uint8_t buffer;
 	//Select page and address
 	if(this->selectedPage != page){
-		buffer = (pageByte | (uint8_t)page);
+		buffer = (CS_pageByte | (uint8_t)page);
 		cSerial->write(buffer);
 		this->selectedPage = page;
 	}
-	buffer = (readByte | (uint8_t)address);
+	buffer = (CS_readByte | (uint8_t)address);
 	cSerial->write(buffer);
 
 	startMillis = millis();
@@ -141,7 +141,7 @@ uint32_t CS5490::getRegChk(void)
 /******* Give an instruction by the serial communication *******/
 
 void CS5490::instruct(int value){
-	uint8_t buffer = (instructionByte | (uint8_t)value);
+	uint8_t buffer = (CS_instructionByte | (uint8_t)value);
 	cSerial->write(buffer);
 }
 
