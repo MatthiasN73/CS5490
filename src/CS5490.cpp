@@ -67,34 +67,35 @@ void CS5490::begin(int baudRate) {
 
 void CS5490::write(int page, int address, uint32_t value){
 
-	uint8_t len = 1;
-	uint8_t buffer[5];
+	uint8_t pos = 0;
+	uint8_t buffer[5] = {};
 	
-	//Select page and address
+	//Select page 
 	if(this->selectedPage != page){
-		buffer[0] = (CS_pageByte | (uint8_t)page);
+		buffer[pos++] = (CS_pageByte | (uint8_t)page);
 		if(_useSerialChecksum) {
-			buffer[1] = calcChecksum(buffer, 1);
-			len += 1;
+			buffer[pos] = calcChecksum(buffer, pos);
+			pos++;
 		}
-		cSerial->write(buffer, len);
+		cSerial->write(buffer, pos);
 		this->selectedPage = page;
 	}
 
-	len = 4;	
-	buffer[0] = (CS_writeByte | (uint8_t)address);
+	// Write-Command + address
+	pos = 0;	
+	buffer[pos++] = (CS_writeByte | (uint8_t)address);
 
 	//Send information
 	for(int i=0; i<3 ; i++){
-		buffer[i+1] = value & 0x000000FF;
+		buffer[pos++] = value & 0x000000FF;
 		value >>= 8;
 	}
 
 	if(_useSerialChecksum) {
-		buffer[4] = calcChecksum(buffer, 4);
-		len += 1;
+		buffer[pos] = calcChecksum(buffer, pos);
+		pos++;
 	}
-	cSerial->write(buffer, len);
+	cSerial->write(buffer, pos);
 }
 
 /******* Read a register by the serial communication *******/
@@ -105,52 +106,53 @@ void CS5490::read(int page, int address){
 	unsigned long startMillis;
 
 	this->clearSerialBuffer();
-	data[0] = 0;
-	data[1] = 0;
-	data[2] = 0;
+	memset(data, 0, 3);
 
-	uint8_t len = 1;
+	uint8_t pos = 0;
 	uint8_t buffer[4];
 
-	//Select page and address
+	//Select page
 	if(this->selectedPage != page){
-		buffer[0] = (CS_pageByte | (uint8_t)page);
+		buffer[pos++] = (CS_pageByte | (uint8_t)page);
 		if(_useSerialChecksum) {
-			buffer[1] = calcChecksum(buffer, 1);
-			len += 1;
+			buffer[pos] = calcChecksum(buffer, pos);
+			pos++;
 		}
-		cSerial->write(buffer, len);
+		cSerial->write(buffer, pos);
 		this->selectedPage = page;
 	}
 
-	uint8_t toRead = 3;
+	//Select address
+	pos = 0;
+	buffer[pos++] = (CS_readByte | (uint8_t)address);
 	if(_useSerialChecksum) {
-		toRead++;
+		buffer[pos] = calcChecksum(buffer, pos);
+		pos++;
 	}
+	cSerial->write(buffer, pos);
+
+
+	uint8_t toRead = _useSerialChecksum == true ? 4 : 3;
 
 	startMillis = millis();
-	//Wait for 3 bytes to arrive
-	while((cSerial->available() < toRead) && ((millis()-startMillis) < 500));
+	//Wait for 3 or 4 bytes to arrive
+	while((cSerial->available() < toRead) && ((millis()-startMillis) < 200));
 	if(cSerial->available() >= toRead)
 	{
-		for(int i=0; i<toRead; i++){
+		for(int i=0; i<toRead; i++) {
 			buffer[i] = cSerial->read();
 		}
 		if(_useSerialChecksum) {
 			uint8_t csum = calcChecksum(buffer, 3);
 			if(csum == buffer[3]) {
-				data[0] = buffer[0];
-				data[1] = buffer[1];
-				data[2] = buffer[2];
+				memcpy(data, buffer, 3);
 			}
-			else 
-			{
+			else {
 				this->_readOperationResult = false;
 			}
 		}
 	}
-	else
-	{
+	else {
 		this->_readOperationResult = false;
 	}
 
@@ -186,15 +188,15 @@ uint32_t CS5490::getRegChk(void)
 /******* Give an instruction by the serial communication *******/
 
 void CS5490::instruct(int value){
-	uint8_t buffer[2];
-	uint8_t len = 1;
-	buffer[0] = (CS_instructionByte | (uint8_t)value);
+	uint8_t buffer[2] = {};
+	uint8_t pos = 0;
+	buffer[pos++] = (CS_instructionByte | (uint8_t)value);
 	if(_useSerialChecksum) {
-		buffer[1] = calcChecksum(buffer, 1);
-		len++;
+		buffer[pos] = calcChecksum(buffer, pos);
+		pos++;
 	}
 
-	cSerial->write(buffer, len);
+	cSerial->write(buffer, pos);
 }
 
 /******* Clears cSerial Buffer *******/
@@ -401,14 +403,12 @@ void CS5490::sendCalibrationCommand(uint8_t type, uint8_t channel){
 /**************************************************************/
 
 /* SET */
-void CS5490::setBaudRate(long value, bool useSerialChecksum = false) {
-
-	_useSerialChecksum = useSerialChecksum;
+void CS5490::setBaudRate(long value, bool useSerialChecksum) {
 
 	//Calculate the correct binary value
 	uint32_t hexBR = ceil(value*0.5242880/MCLK);
 	if (hexBR > 65535) hexBR = 65535;
-	if(_useSerialChecksum == false) {
+	if(useSerialChecksum == false) {
 		hexBR |= 0x020000;
 	}
 
@@ -419,6 +419,9 @@ void CS5490::setBaudRate(long value, bool useSerialChecksum = false) {
 	cSerial->end();
 	cSerial->begin(value);
 	delay(50); //Avoid bugs from Arduino MEGA
+
+	_useSerialChecksum = useSerialChecksum;
+
 	return;
 }
 
