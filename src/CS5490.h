@@ -187,6 +187,9 @@ public:
 
 	double getTime();
 
+	double getTemp();
+
+
 	/*** Configuration ***/
 	long getBaudRate();
 	void setBaudRate(long value, bool useSerialChecksum);

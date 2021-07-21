@@ -456,6 +456,7 @@ long CS5490::getBaudRate(){
 	return ( (buffer/0.5242880)*MCLK );
 }
 
+
 /**************************************************************/
 /*       PUBLIC METHODS - Calibration                         */
 /**************************************************************/
@@ -664,6 +665,12 @@ double CS5490::getTime(){
 	//Page 16, Address 61
 	this->read(16,61);
 	return this->toDouble(0, MSBunsigned);
+}
+
+double CS5490::getTemp(){
+	//Page 16, Address 27
+	this->read(16,27);
+	return this->toDouble(16, MSBsigned);
 }
 
 /**************************************************************/
