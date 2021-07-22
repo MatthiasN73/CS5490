@@ -18,7 +18,7 @@
 /******* Init CS5490 *******/
 
 //For Arduino & ESP8622
-#if !(defined ARDUINO_NodeMCU_32S ) && !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__) && !defined(ARDUINO_Node32s)
+#if !(defined ARDUINO_NodeMCU_32S ) && !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__) && !defined(ARDUINO_Node32s) && !defined(ESP32)
 	CS5490::CS5490(float mclk, int rx, int tx){
 		this->selectedPage = -1;
 		this->MCLK = mclk;
@@ -38,14 +38,14 @@
 	CS5490::CS5490(float mclk){
 		this->selectedPage = -1;
 		this->MCLK = mclk;
-		this->cSerial = &Serial2;
+		this->cSerial = &Serial1;
 		this->resetPin = -1;
 	}
 
 		CS5490::CS5490(float mclk, int reset){
 		this->selectedPage = -1;
 		this->MCLK = mclk;
-		this->cSerial = &Serial2;
+		this->cSerial = &Serial1;
 		this->resetPin = reset;
 		pinMode(this->resetPin, INPUT); // In the hypothesis there's an RC circuit connected to the CS5490 reset pin
 	}

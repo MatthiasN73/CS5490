@@ -20,7 +20,7 @@
 // Used .h files
 #include "Arduino.h" //Arduino Library
 
-#if !(defined ARDUINO_NodeMCU_32S ) && !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__) && !defined(ARDUINO_Node32s)
+#if !(defined ARDUINO_NodeMCU_32S ) && !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__) && !defined(ARDUINO_Node32s) && !defined(ESP32)
 	#ifndef SoftwareSerial
 		#include <SoftwareSerial.h>
 	#endif
@@ -91,7 +91,7 @@ private:
 
 public:
 
-	#if !(defined ARDUINO_NodeMCU_32S ) && !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__) && !defined(ARDUINO_Node32s)
+	#if !(defined ARDUINO_NodeMCU_32S ) && !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__) && !defined(ARDUINO_Node32s) && !defined(ESP32)
 		SoftwareSerial *cSerial;
 		CS5490(float mclk, int rx, int tx);
 		CS5490(float mclk, int rx, int tx, int reset);
