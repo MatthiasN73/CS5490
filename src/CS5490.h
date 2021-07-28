@@ -88,17 +88,18 @@ class CS5490{
 private:
 	bool _readOperationResult;
 	bool _useSerialChecksum;
+	bool _readOperationCsError;
 
 public:
 
 	#if !(defined ARDUINO_NodeMCU_32S ) && !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__) && !defined(ARDUINO_Node32s) && !defined(ESP32)
 		SoftwareSerial *cSerial;
-		CS5490(float mclk, int rx, int tx);
-		CS5490(float mclk, int rx, int tx, int reset);
+		CS5490(float mclk, int rx, int tx, bool cs);
+		CS5490(float mclk, int rx, int tx, int reset, bool cs);
 	#else
 		HardwareSerial *cSerial;
-		CS5490(float mclk);
-		CS5490(float mclk, int reset);
+		CS5490(float mclk, bool cs);
+		CS5490(float mclk, int reset, bool cs);
 	#endif
 
 	uint8_t data[3]; //data buffer for read and write 

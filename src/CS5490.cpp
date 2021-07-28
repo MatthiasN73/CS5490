@@ -146,9 +146,11 @@ void CS5490::read(int page, int address){
 			uint8_t csum = calcChecksum(buffer, 3);
 			if(csum == buffer[3]) {
 				memcpy(data, buffer, 3);
+				this->_readOperationCsError = false;
 			}
 			else {
 				this->_readOperationResult = false;
+				this->_readOperationCsError = true;
 			}
 		}
 	}
