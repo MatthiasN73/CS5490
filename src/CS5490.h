@@ -1,4 +1,4 @@
-/**
+ /**
 
 	@author Tiago Britto Lobão
 	tiago.blobao@gmail.com
@@ -87,22 +87,22 @@ class CS5490{
 
 private:
 	bool _readOperationResult;
-	bool _useSerialChecksum;
-	bool _readOperationCsError;
+	bool _useSerialChecksum = false;
+	bool _readOperationCsError = false;
 
 public:
 
 	#if !(defined ARDUINO_NodeMCU_32S ) && !defined(__AVR_ATmega1280__) && !defined(__AVR_ATmega2560__) && !defined(ARDUINO_Node32s) && !defined(ESP32)
 		SoftwareSerial *cSerial;
-		CS5490(float mclk, int rx, int tx, bool cs);
-		CS5490(float mclk, int rx, int tx, int reset, bool cs);
+		CS5490(float mclk, int rx, int tx);
+		CS5490(float mclk, int rx, int tx, int reset);
 	#else
 		HardwareSerial *cSerial;
-		CS5490(float mclk, bool cs);
-		CS5490(float mclk, int reset, bool cs);
+		CS5490(float mclk);
+		CS5490(float mclk, int reset);
 	#endif
 
-	uint8_t data[3]; //data buffer for read and write 
+	uint8_t data[3]; //data buffer for read and write
 	int selectedPage;
 	float MCLK;
 	int resetPin;
@@ -119,7 +119,6 @@ public:
 	uint32_t getRegChk(void);
 	uint8_t calcChecksum(const uint8_t* buffer, uint8_t len);
 
-
 	/*** Instructions ***/
 	void reset();
 	void standby();
@@ -132,6 +131,8 @@ public:
 	void hardwareReset(void);
 	bool checkInternalVoltageReference(void);
 	void resolve(void);
+	void checksum_enable(bool value);
+	bool isChecksumError(void);
 	/*** Calibration ***/
 
 	//Gain
@@ -190,10 +191,9 @@ public:
 
 	double getTemp();
 
-
 	/*** Configuration ***/
 	long getBaudRate();
-	void setBaudRate(long value, bool useSerialChecksum);
+	void setBaudRate(long value);
 	void setDOpinFunction(DO_Function_t DO_fnct, bool openDrain);
 	/* Not implemented functions
 	void setDO(int mode);

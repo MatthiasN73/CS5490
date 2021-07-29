@@ -38,20 +38,20 @@
 	CS5490::CS5490(float mclk){
 		this->selectedPage = -1;
 		this->MCLK = mclk;
-		this->cSerial = &Serial1;
+		this->cSerial = &Serial2;
 		this->resetPin = -1;
 	}
 
 		CS5490::CS5490(float mclk, int reset){
 		this->selectedPage = -1;
 		this->MCLK = mclk;
-		this->cSerial = &Serial1;
+		this->cSerial = &Serial2;
 		this->resetPin = reset;
 		pinMode(this->resetPin, INPUT); // In the hypothesis there's an RC circuit connected to the CS5490 reset pin
 	}
 #endif
 
-void CS5490::begin(int baudRate) {
+void CS5490::begin(int baudRate){
 	cSerial->begin(baudRate);
 	this->_readOperationResult = true;
 	delay(10); //Avoid Bugs on Arduino UNO
@@ -73,7 +73,7 @@ void CS5490::write(int page, int address, uint32_t value){
 	//Select page 
 	if(this->selectedPage != page){
 		buffer[pos++] = (CS_pageByte | (uint8_t)page);
-		if(_useSerialChecksum) {
+		if(_useSerialChecksum == true) {
 			buffer[pos] = calcChecksum(buffer, pos);
 			pos++;
 		}
@@ -102,7 +102,6 @@ void CS5490::write(int page, int address, uint32_t value){
 /* data bytes pass by data variable from this class */
 
 void CS5490::read(int page, int address){
-
 	unsigned long startMillis;
 
 	this->clearSerialBuffer();
@@ -153,21 +152,16 @@ void CS5490::read(int page, int address){
 				this->_readOperationCsError = true;
 			}
 		}
+		else
+		{
+				memcpy(data, buffer, 3);
+		}
 	}
 	else {
 		this->_readOperationResult = false;
 	}
 
 	this->clearSerialBuffer();
-}
-
-// Calculates the checksum for buffer
-uint8_t CS5490::calcChecksum(const uint8_t* buffer, uint8_t len){
-	uint8_t csum = 0xFF;
-	for(uint8_t idx = 0; idx < len; idx++){
-		csum = ((csum - buffer[idx]) & 0xFF);
-	}
-	return(csum);
 }
 
 // Used to check if read operations succeeded or not. Return:
@@ -204,6 +198,15 @@ void CS5490::instruct(int value){
 /******* Clears cSerial Buffer *******/
 void CS5490::clearSerialBuffer(){
 	while (cSerial->available()) cSerial->read();
+}
+
+// Calculates the checksum for buffer
+uint8_t CS5490::calcChecksum(const uint8_t* buffer, uint8_t len){
+	uint8_t csum = 0xFF;
+	for(uint8_t idx = 0; idx < len; idx++){
+		csum = ((csum - buffer[idx]) & 0xFF);
+	}
+	return(csum);
 }
 
 /*
@@ -352,6 +355,27 @@ bool CS5490::checkInternalVoltageReference(void)
 	return (this->readReg(0, 30) == 0x0C0008 ? true : false);
 }
 
+bool CS5490::isChecksumError(void) 
+{
+	return(_useSerialChecksum == true ? _readOperationCsError : false);
+}
+
+//
+void CS5490::checksum_enable(bool value) 
+{
+	uint32_t regValue = this->readReg(0x00, 0x07);
+	if(value == true) {
+		regValue &= ~0x020000;
+	}
+	else {
+		regValue |= 0x020000;
+	}
+	
+	this->write(0x0,0x07,regValue);
+
+	_useSerialChecksum = value;
+}
+
 // Perform a chip recovery operation. Note that default internal registers values will be restored.
 // Used, in general, when the method "areLastReadingOperationsSucceeded()" return false.
 void CS5490::resolve(void)
@@ -405,14 +429,12 @@ void CS5490::sendCalibrationCommand(uint8_t type, uint8_t channel){
 /**************************************************************/
 
 /* SET */
-void CS5490::setBaudRate(long value, bool useSerialChecksum) {
+void CS5490::setBaudRate(long value){
 
 	//Calculate the correct binary value
 	uint32_t hexBR = ceil(value*0.5242880/MCLK);
 	if (hexBR > 65535) hexBR = 65535;
-	if(useSerialChecksum == false) {
-		hexBR |= 0x020000;
-	}
+	hexBR |= 0x020000;
 
 	this->write(0x80,0x07,hexBR);          // 0x80 instead of 0x00 in order to force a page selection command on page 0
 	delay(100); //To avoid bugs from ESP32
@@ -421,9 +443,6 @@ void CS5490::setBaudRate(long value, bool useSerialChecksum) {
 	cSerial->end();
 	cSerial->begin(value);
 	delay(50); //Avoid bugs from Arduino MEGA
-
-	_useSerialChecksum = useSerialChecksum;
-
 	return;
 }
 
@@ -453,11 +472,11 @@ void CS5490::setDOpinFunction(DO_Function_t DO_fnct, bool openDrain)
 
 long CS5490::getBaudRate(){
 	this->read(0,7);
-	uint32_t buffer = (this->concatData() & 0x0000FFFF);
+	//uint32_t buffer = this->concatData();
 	//buffer -= 0x020000;
+	uint32_t buffer = (this->concatData() & 0x0000FFFF);
 	return ( (buffer/0.5242880)*MCLK );
 }
-
 
 /**************************************************************/
 /*       PUBLIC METHODS - Calibration                         */
@@ -674,7 +693,6 @@ double CS5490::getTemp(){
 	this->read(16,27);
 	return this->toDouble(16, MSBsigned);
 }
-
 /**************************************************************/
 /*              PUBLIC METHODS - Read Register                */
 /**************************************************************/
