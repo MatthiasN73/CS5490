@@ -191,6 +191,9 @@ public:
 
 	double getTemp();
 
+	int getChipId();
+	int getChipRev();
+
 	/*** Configuration ***/
 	long getBaudRate();
 	void setBaudRate(long value);

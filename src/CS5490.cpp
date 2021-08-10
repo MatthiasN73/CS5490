@@ -693,6 +693,23 @@ double CS5490::getTemp(){
 	this->read(16,27);
 	return this->toDouble(16, MSBsigned);
 }
+
+/* 
+Chip-Id: 0 = CS5484, 1 = CS5480, 3 = CS5490 
+*/
+int CS5490::getChipId() {
+    uint32_t chipInfo = this->readReg(0, 35);
+	return((int)((chipInfo & 0xC00000) / 4194303.0));
+}
+
+/*
+Chip-Revision: 0 = A0, 1 = A1, 2 = B0, 3 = B1, 4 = B2
+*/
+int CS5490::getChipRev() {
+    uint32_t chipInfo = this->readReg(0, 35);
+    return((int)((chipInfo & 0xF0) / 15.0));
+}
+
 /**************************************************************/
 /*              PUBLIC METHODS - Read Register                */
 /**************************************************************/
