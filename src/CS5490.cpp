@@ -338,6 +338,9 @@ void CS5490::hardwareReset(void)
 		while(millis() < startTime + 100);
 	}
 
+	// after reset it's deactivated
+	_useSerialChecksum = false;
+
   	// SW reset (in case the reset line fails...)
   	this->reset();
 
